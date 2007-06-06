@@ -23,7 +23,7 @@ class JournalTest(unittest.TestCase):
   
   def testGetCalendarForToday(self):
     today = datetime.date.today()
-    self.journal.GetCalendar(today)
+    self.journal.GetCalendar(date=today)
   
 
 if __name__ == '__main__':
