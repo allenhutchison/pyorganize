@@ -11,7 +11,7 @@ class Todo:
   """
 
   def __init__(self, title=None, description=None, tags=None, task_id=None,
-               creation_date=datetime.datetime.today(), resolution_date=None,
+               creation_date=datetime.date.today(), resolution_date=None,
                due_date=None, filename=None):
     """Creates a todo object.
 
@@ -31,7 +31,7 @@ class Todo:
     self.title = title
 
     if creation_date is None:
-      self.creation_date = datetime.datetime.today()
+      self.creation_date = datetime.date.today()
     else:
       self.creation_date = creation_date
 
@@ -40,6 +40,7 @@ class Todo:
     self.tags = tags
     self.task_id = task_id
     self.description = description
+    self.disk_sync = 0
 
     if filename is None:
       self.filename = os.path.join(config.PYORG_CONFIG.get('PyOrganize','base'),
@@ -47,72 +48,57 @@ class Todo:
     else:
       self.filename = filename
 
+    self.Print()
+    self.ReadTodo()
+    self.Print()
+
+  def __del__(self):
+    self.WriteTodo()
+
   def Complete(self):
     self.resolution_date = datetime.datetime.today()
-    self.WriteTodo()
 
   def PrintSummary(self):
     print "%s: %s" % (self.task_id, self.title)
 
+  def Print(self):
+    print "task_id: %s" % self.task_id
+    print "title: %s" % self.title
+    print "creation_date: %s" % self.creation_date
+    print "due_date: %s" % self.due_date
+    print "resolution_date: %s" % self.resolution_date
+    print "tags: %s" % self.tags
+    print "description: %s" % self.description
+
   def WriteTodo(self):
-    myfile = open(self.filename, w)
-    myfile.write('task_id: %s' % (self.task_id))
-    myfile.write('title: %s' % (self.title))
-    myfile.write('creation_date: %s' % (self.creation_date))
-    myfile.write('due_date: %s' % (self.due_date))
-    myfile.write('resolution_date: %s' % (self.resolution_date))
-    myfile.write('tags: %s' % (self.tags))
-    myfile.write('description: %s' % (self.description))
-    myfile.close()
+    if self.disk_sync is 0:
+      myfile = open(self.filename, 'w')
+      myfile.write('creation_date: %s\n' % (self.creation_date))
+      myfile.write('due_date: %s\n' % (self.due_date))
+      myfile.write('resolution_date: %s\n' % (self.resolution_date))
+      myfile.write('tags: %s\n' % (self.tags))
+      myfile.write('description: %s\n' % (self.description))
+      myfile.close()
 
   def ReadTodo(self):
-    dispatcher = {'task_id': self.SetTaskId,
-                  'title': self.SetTitle,
-                  'creation_date': self.SetCreationDate,
-                  'due_date': self.SetDueDate,
-                  'resolution_date': self.SetResolutionDate,
-                  'tags': self.SetTags,
-                  'description': self.SetDescription}
-    
-    if os.path.exists(self.todo_file):
-      myfile = open(self.todo_file)
+    if os.path.exists(self.filename):
+      myfile = open(self.filename)
       for line in myfile:
         (descriptor, data) = line.split(':', 1)
-        if dispatcher.has_key(descriptor):
-          dispatcher[descriptor](data)
-    
-class TodoList:
-  """Todo List
-  """
+        if hasattr(self, descriptor):
+          self.Set(descriptor, data)
+        else:
+          print "%s doesn't exist" % descriptor
 
-  def __init__(self):
-    self.todo_file = os.path.join(config.PYORG_CONFIG.get('PyOrganize', 'base'),
-                                  'todo.txt')
-    self.todo_list = dict()
-    self.ReadTodoFile()
+  def Set(self, var, val):
+    val = val.rstrip()
+    val = val.lstrip()
+    self.var = val
 
-  def ReadTodoFile(self):
-    if os.path.exists(self.todo_file):
-      myfile = open(self.todo_file)
-      for line in myfile:
-        (task_id, title) = line.split(':', 1)
-        todo = Todo(title=title, task_id=task_id)
-        self.todo_list[task_id] = todo
-
-  def WriteTodoFile(self):
-    key_list = self.todo_list.keys()
-    key_list.sort()
-    myfile = open(self.todo_file, w)
-    for x in key_list:
-      myfile.write('%s:%s' % (x, self.todo_list[x]))
-    myfile.close()
-
-  def PrintList(self):
-    key_list = self.todo_list.keys()
-    key_list.sort()
-    for x in key_list:
-      self.todo_list[x].PrintSummary()
-
-  def AddTodo(self, title):
-    todo = ToDo(title=title)
-    self.WriteTodoFile()
+  def Edit(self):
+    command = "%s %s" % (config.PYORG_CONFIG.get('PyOrganize', 'editor'),
+                         self.filename)
+    self.WriteTodo()
+    os.system(command)
+    self.ReadTodo()
+    self.disk_sync = 1
