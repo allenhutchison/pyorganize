@@ -41,7 +41,9 @@ class GCal:
       print '\t%s. %s' % (i, a_calendar.title.text,)
   
   def GetEventsOnDate(self, start_date=None, end_date=None):
-    query = gdata.calendar.service.CalendarEventQuery('default', 'private', 'full')
+    query = gdata.calendar.service.CalendarEventQuery('default',
+                                                      'private',
+                                                      'full')
     query.start_min = start_date
     query.start_max = end_date
     query.orderby = 'starttime'
