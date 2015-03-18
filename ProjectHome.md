@@ -1,0 +1,1 @@
+This application will give you the ability to track tasks and daily journal entries.
